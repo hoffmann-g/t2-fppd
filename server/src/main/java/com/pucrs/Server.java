@@ -19,6 +19,12 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
     private static Map<Long, Map<String, String>> requestLog = new ConcurrentHashMap<>();
     private static Map<Long, Double> balance = new ConcurrentHashMap<>();
 
+    // ANSI escape codes for colors
+    private static final String RESET = "\u001B[0m";
+    private static final String RED = "\u001B[31m";
+    private static final String YELLOW = "\u001B[33m";
+    private static final String GREEN = "\u001B[32m";
+
     protected Server() throws RemoteException {
         super();
     }
@@ -81,7 +87,7 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                 // Simulate an error
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while processing request!");
+                    System.out.println(RED + "#" + requestId + " - error while processing request!" + RESET);
                     return null;
                 }
 
@@ -96,7 +102,7 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                     requestLog.put(requestId, processedRequest);
 
-                    System.out.println("#" + requestId + " - deposit request proccessed successfully!");
+                    System.out.println(GREEN + "#" + requestId + " - deposit request processed successfully!" + RESET);
                 } else {
                     processedRequest = Map.of(
                             "success", "false",
@@ -104,26 +110,24 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                     requestLog.put(requestId, processedRequest);
 
-                    System.out.println("#" + requestId + " - deposit request could not be proccessed!");
+                    System.out.println(RED + "#" + requestId + " - deposit request could not be processed!" + RESET);
                 }
-
-                
 
                 System.out.println("#" + requestId + " - sending response to client...");
 
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while sending response.");
+                    System.out.println(RED + "#" + requestId + " - error while sending response." + RESET);
                     return null;
                 }
 
                 return processedRequest;
 
             } else {
-                System.out.println("#" + requestId + " - deposit request is repeated");
+                System.out.println(YELLOW + "#" + requestId + " - deposit request is repeated" + RESET);
                 System.out.println("#" + requestId + " - sending response to client again...");
 
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while sending response.");
+                    System.out.println(RED + "#" + requestId + " - error while sending response." + RESET);
                     return null;
                 }
 
@@ -146,7 +150,7 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                 // Simulate an error
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while processing request!");
+                    System.out.println(RED + "#" + requestId + " - error while processing request!" + RESET);
                     return null;
                 }
 
@@ -162,15 +166,16 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                         requestLog.put(requestId, processedRequest);
 
+                        System.out.println(GREEN + "#" + requestId + " - withdraw request processed successfully!" + RESET);
                     } else {
                         processedRequest = Map.of(
                                 "success", "false",
                                 "message", "Insufficient funds in account #" + accountId);
 
                         requestLog.put(requestId, processedRequest);
-                    }
 
-                    System.out.println("#" + requestId + " - withdraw request proccessed successfully!");
+                        System.out.println(RED + "#" + requestId + " - withdraw request could not be processed!" + RESET);
+                    }
                 } else {
                     processedRequest = Map.of(
                             "success", "false",
@@ -178,24 +183,24 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                     requestLog.put(requestId, processedRequest);
 
-                    System.out.println("#" + requestId + " - withdraw request could not be proccessed!");
+                    System.out.println(RED + "#" + requestId + " - withdraw request could not be processed!" + RESET);
                 }
 
                 System.out.println("#" + requestId + " - sending response to client...");
 
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while sending response.");
+                    System.out.println(RED + "#" + requestId + " - error while sending response." + RESET);
                     return null;
                 }
 
                 return processedRequest;
 
             } else {
-                System.out.println("#" + requestId + " - withdraw request is repeated");
+                System.out.println(YELLOW + "#" + requestId + " - withdraw request is repeated" + RESET);
                 System.out.println("#" + requestId + " - sending response to client again...");
 
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while sending response.");
+                    System.out.println(RED + "#" + requestId + " - error while sending response." + RESET);
                     return null;
                 }
 
@@ -217,7 +222,7 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                 // Simulate an error
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while processing request!");
+                    System.out.println(RED + "#" + requestId + " - error while processing request!" + RESET);
                     return null;
                 }
 
@@ -230,7 +235,7 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                     requestLog.put(requestId, processedRequest);
 
-                    System.out.println("#" + requestId + " - get_balance request proccessed successfully!");
+                    System.out.println(GREEN + "#" + requestId + " - get_balance request processed successfully!" + RESET);
                 } else {
                     processedRequest = Map.of(
                             "success", "false",
@@ -238,24 +243,24 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
                     requestLog.put(requestId, processedRequest);
 
-                    System.out.println("#" + requestId + " - get_balance request could not be proccessed!");
+                    System.out.println(RED + "#" + requestId + " - get_balance request could not be processed!" + RESET);
                 }
 
                 System.out.println("#" + requestId + " - sending response to client...");
 
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while sending response.");
+                    System.out.println(RED + "#" + requestId + " - error while sending response." + RESET);
                     return null;
                 }
 
                 return processedRequest;
 
             } else {
-                System.out.println("#" + requestId + " - get_balance request is repeated");
+                System.out.println(YELLOW + "#" + requestId + " - get_balance request is repeated" + RESET);
                 System.out.println("#" + requestId + " - sending response to client again...");
 
                 if (Math.random() < ERROR_RATE) {
-                    System.out.println("#" + requestId + " - error while sending response.");
+                    System.out.println(RED + "#" + requestId + " - error while sending response." + RESET);
                     return null;
                 }
 
