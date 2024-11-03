@@ -89,6 +89,8 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
     @Override
     public Map<String, String> deposit(long requestId, long accountId, Double amount) throws RemoteException {
+        logMessage("\n#" + requestId + " - deposit request received.");
+
         if (runningTasks.putIfAbsent(requestId, true) != null) {
             logMessage("\n#" + requestId + " - request already being processed.", GRAY);
             return null;
@@ -96,9 +98,8 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
         return executeRequest(() -> {
             try {
-                logMessage("\n#" + requestId + " - deposit request received.");
                 if (!requestLog.containsKey(requestId)) {
-
+                    
                     logMessage("#" + requestId + " - processing request...");
                     Thread.sleep(15000);
 
@@ -156,6 +157,8 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
     @Override
     public Map<String, String> withdraw(long requestId, long accountId, Double amount) throws RemoteException {
+        logMessage("\n#" + requestId + " - withdraw request received.");
+        
         if (runningTasks.putIfAbsent(requestId, true) != null) {
             logMessage("\n#" + requestId + " - request already being processed.", GRAY);
             return null;
@@ -163,7 +166,6 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
         return executeRequest(() -> {
             try {
-                logMessage("\n#" + requestId + " - withdraw request received.");
                 if (!requestLog.containsKey(requestId)) {
 
                     logMessage("#" + requestId + " - processing request...");
@@ -231,6 +233,8 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
     @Override
     public Map<String, String> getBalance(long requestId, long accountId) throws RemoteException {
+        logMessage("\n#" + requestId + " - get_balance request received.");
+        
         if (runningTasks.putIfAbsent(requestId, true) != null) {
             logMessage("\n#" + requestId + " - request already being processed.", GRAY);
             return null;
@@ -238,7 +242,6 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
 
         return executeRequest(() -> {
             try {
-                logMessage("\n#" + requestId + " - get_balance request received.");
                 if (!requestLog.containsKey(requestId)) {
 
                     logMessage("#" + requestId + " - processing request...");
