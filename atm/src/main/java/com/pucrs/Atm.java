@@ -3,6 +3,7 @@ package com.pucrs;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -12,6 +13,7 @@ import java.util.concurrent.TimeoutException;
 import com.pucrs.interfaces.IAtmRemote;
 
 import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 
@@ -41,11 +43,15 @@ public class Atm {
                 while (true)
                     showMainMenu();
 
-            } catch (NotBoundException e) {
+            } catch (NotBoundException | RemoteException | ExecutionException e) {
                 while (counter > 0) {
                     clearConsole();
-                    System.out.println("Error connecting to server: " + e.getMessage());
-                    System.out.println("Trying to reconnect in " + counter + " seconds...");
+                    if (e.getCause() != null) {
+                        System.out.println("Error: " + e.getCause().getMessage());
+                    } else {
+                        System.out.println("Error: " + e.getMessage());
+                    }
+                    System.out.println("Trying to reconnect to server in " + counter + " seconds...");
                     Thread.sleep(1000);
                     counter--;
                 }
@@ -59,7 +65,7 @@ public class Atm {
 
     }
 
-    private static void showMainMenu() throws InterruptedException {
+    private static void showMainMenu() throws InterruptedException, ExecutionException {
         clearConsole();
         System.out.println("Welcome to ATM-CLIENT, press:");
         System.out.println("1. Deposit");
@@ -81,7 +87,7 @@ public class Atm {
         }
     }
 
-    private static void handleDeposit() throws InterruptedException {
+    private static void handleDeposit() throws InterruptedException, ExecutionException {
         clearConsole();
 
         long requestId = java.util.UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
@@ -105,14 +111,14 @@ public class Atm {
 
                 if (res == null) {
                     clearConsole();
-                    throw new Exception("No response from server.");
+                    throw new NullPointerException("No response from server.");
                 }
 
                 success = true;
                 handleResponse(res);
                 break;
 
-            } catch (Exception e) {
+            } catch (NullPointerException | TimeoutException e) {
                 System.out.println("An error occurred: " + e.getMessage());
                 System.out.println("Retrying... (" + (attempts + 1) + "/" + MAX_ATTEMPTS + ")");
                 Thread.sleep(REQUEST_ATTEMPT_SLEEP);
@@ -130,7 +136,7 @@ public class Atm {
 
     }
 
-    private static void handleWithdraw() throws InterruptedException {
+    private static void handleWithdraw() throws InterruptedException, ExecutionException {
         clearConsole();
 
         long requestId = java.util.UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
@@ -154,14 +160,14 @@ public class Atm {
 
                 if (res == null) {
                     clearConsole();
-                    throw new Exception("No response from server.");
+                    throw new NullPointerException("No response from server.");
                 }
 
                 success = true;
                 handleResponse(res);
                 break;
 
-            } catch (Exception e) {
+            } catch (NullPointerException | TimeoutException e) {
                 System.out.println("An error occurred: " + e.getMessage());
                 System.out.println("Retrying... (" + (attempts + 1) + "/" + MAX_ATTEMPTS + ")");
                 Thread.sleep(REQUEST_ATTEMPT_SLEEP);
@@ -174,11 +180,11 @@ public class Atm {
         }
 
         if (askToContinue()) {
-            handleDeposit();
+            handleWithdraw();
         }
     }
 
-    private static void handleGetBalance() throws InterruptedException {
+    private static void handleGetBalance() throws InterruptedException, ExecutionException {
         clearConsole();
 
         long requestId = java.util.UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
@@ -199,14 +205,14 @@ public class Atm {
 
                 if (res == null) {
                     clearConsole();
-                    throw new Exception("No response from server.");
+                    throw new NullPointerException("No response from server.");
                 }
 
                 success = true;
                 handleResponse(res);
                 break;
 
-            } catch (Exception e) {
+            } catch (NullPointerException | TimeoutException e) {
                 System.out.println("An error occurred: " + e.getMessage());
                 System.out.println("Retrying... (" + (attempts + 1) + "/" + MAX_ATTEMPTS + ")");
                 Thread.sleep(REQUEST_ATTEMPT_SLEEP);
@@ -219,7 +225,7 @@ public class Atm {
         }
 
         if (askToContinue()) {
-            handleDeposit();
+            handleGetBalance();
         }
 
     }
@@ -282,7 +288,8 @@ public class Atm {
         return amount;
     }
 
-    private static <T> T executeWithTimeout(Callable<T> callable, int timeout) throws Exception {
+    private static <T> T executeWithTimeout(Callable<T> callable, int timeout)
+            throws TimeoutException, ExecutionException, InterruptedException {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<T> future = executor.submit(callable);
         try {
@@ -290,7 +297,7 @@ public class Atm {
         } catch (TimeoutException e) {
             future.cancel(true);
             clearConsole();
-            throw new Exception("Operation timed out");
+            throw new TimeoutException("Operation timed out");
         } finally {
             executor.shutdown();
         }
