@@ -67,24 +67,190 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
     }
 
     @Override
-    public Map<String, String> getAccountInfo(long requestId, long accountId) throws RemoteException {
-        return executeRequest(() -> {
-            throw new UnsupportedOperationException("Not supported yet.");
-        });
+    public synchronized Map<String, String> getAccountInfo(long requestId, long accountId) throws RemoteException {
+        try {
+            System.out.println("\n#" + requestId + " - get account info request received.");
+            if (!requestLog.containsKey(requestId)) {
+
+                System.out.println("#" + requestId + " - processing request...");
+                Thread.sleep((long) (Math.random() * MAX_SLEEP));
+
+                // Simulate an error
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while processing request!");
+                    return null;
+                }
+
+                Map<String, String> processedRequest;
+
+                if (balance.containsKey(accountId)) {
+
+                    final Double balanceAmount = balance.get(accountId);
+
+                    processedRequest = Map.of(
+                            "success", "true",
+                            "message", "Account info Account ID: #" + accountId + "Amount: " + balanceAmount);
+
+                    requestLog.put(requestId, processedRequest);
+
+                    System.out.println("#" + requestId + " - Create account request not processed!");
+                } else {
+                    processedRequest = Map.of(
+                            "success", "false",
+                            "message", "Account #" + accountId + " not exist!");
+
+                    requestLog.put(requestId, processedRequest);
+
+                    System.out.println("#" + requestId + " - get info account request processed!");
+                }
+
+                System.out.println("#" + requestId + " - sending response to client...");
+
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while sending response.");
+                    return null;
+                }
+
+                return processedRequest;
+
+            } else {
+                System.out.println("#" + requestId + " - get account info request is repeated");
+                System.out.println("#" + requestId + " - sending response to client again...");
+
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while sending response.");
+                    return null;
+                }
+
+                return requestLog.get(requestId);
+            }
+        } catch (InterruptedException e) {
+            return null;
+        }
     }
 
     @Override
-    public Map<String, String> createAccount(long requestId, long accountId) throws RemoteException {
-        return executeRequest(() -> {
-            throw new UnsupportedOperationException("Not supported yet.");
-        });
-    }
+    public synchronized Map<String, String> createAccount(long requestId, long accountId) throws RemoteException {
+        try {
+            System.out.println("\n#" + requestId + " - create account request received.");
+            if (!requestLog.containsKey(requestId)) {
+
+                System.out.println("#" + requestId + " - processing request...");
+                Thread.sleep((long) (Math.random() * MAX_SLEEP));
+
+                // Simulate an error
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while processing request!");
+                    return null;
+                }
+
+                Map<String, String> processedRequest;
+
+                if (balance.containsKey(accountId)) {
+
+                    processedRequest = Map.of(
+                            "success", "false",
+                            "message", "Account already exists #" + accountId);
+
+                    requestLog.put(requestId, processedRequest);
+
+                    System.out.println("#" + requestId + " - Create account request not processed!");
+                } else {
+                    balance.put(accountId, 0.0);
+                    processedRequest = Map.of(
+                            "success", "true",
+                            "message", "Account #" + accountId + " created successfully!");
+
+                    requestLog.put(requestId, processedRequest);
+
+                    System.out.println("#" + requestId + " - create account request processed!");
+                }
+
+                System.out.println("#" + requestId + " - sending response to client...");
+
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while sending response.");
+                    return null;
+                }
+
+                return processedRequest;
+
+            } else {
+                System.out.println("#" + requestId + " - create account request is repeated");
+                System.out.println("#" + requestId + " - sending response to client again...");
+
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while sending response.");
+                    return null;
+                }
+
+                return requestLog.get(requestId);
+            }
+        } catch (InterruptedException e) {
+            return null;
+        }
 
     @Override
     public Map<String, String> deleteAccount(long requestId, long accountId) throws RemoteException {
-        return executeRequest(() -> {
-            throw new UnsupportedOperationException("Not supported yet.");
-        });
+        try {
+            System.out.println("\n#" + requestId + " - close account request received.");
+            if (!requestLog.containsKey(requestId)) {
+
+                System.out.println("#" + requestId + " - processing request...");
+                Thread.sleep((long) (Math.random() * MAX_SLEEP));
+
+                // Simulate an error
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while processing request!");
+                    return null;
+                }
+
+                Map<String, String> processedRequest;
+
+                if (balance.containsKey(accountId)) {
+
+                    balance.remove(accountId);
+
+                    processedRequest = Map.of(
+                            "success", "true",
+                            "message", "Account exists and were removed #" + accountId);
+
+                    requestLog.put(requestId, processedRequest);
+
+                    System.out.println("#" + requestId + " - Create account request not processed!");
+                } else {
+                    processedRequest = Map.of(
+                            "success", "false",
+                            "message", "Account #" + accountId + " don't removed!");
+
+                    requestLog.put(requestId, processedRequest);
+
+                    System.out.println("#" + requestId + " - close account request processed!");
+                }
+
+                System.out.println("#" + requestId + " - sending response to client...");
+
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while sending response.");
+                    return null;
+                }
+
+                return processedRequest;
+
+            } else {
+                System.out.println("#" + requestId + " - close account request is repeated");
+                System.out.println("#" + requestId + " - sending response to client again...");
+
+                if (Math.random() < ERROR_RATE) {
+                    System.out.println("#" + requestId + " - error while sending response.");
+                    return null;
+                }
+
+                return requestLog.get(requestId);
+            }
+        } catch (InterruptedException e) {
+            return null;
+        }
     }
 
     @Override
