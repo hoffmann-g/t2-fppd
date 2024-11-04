@@ -1,7 +1,6 @@
 package com.pucrs;
 
-
-
+import java.util.Random;
 import com.pucrs.interfaces.IAtmRemote;
 import com.pucrs.interfaces.IBranchRemote;
 
@@ -92,7 +91,48 @@ public class Agency {
     }
 
     private static void handleCloseAccount() throws InterruptedException {
-        //TODO METHOD
+        clearConsole();
+
+        long requestId = java.util.UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
+
+        System.out.print("Enter Account ID: ");
+        long accountId = scanner.nextLong();
+
+        boolean success = false;
+        int attempts = 0;
+        while (attempts < MAX_ATTEMPTS) {
+
+            clearConsole();
+
+            try {
+                System.out.println("Sending request to server...");
+                Map<String, String> res = executeWithTimeout(() -> accountRemote.deleteAccount(requestId, accountId),
+                        REQUEST_TIMEOUT);
+
+                if (res == null) {
+                    clearConsole();
+                    throw new Exception("No response from server.");
+                }
+
+                success = true;
+                handleResponse(res);
+                break;
+
+            } catch (Exception e) {
+                System.out.println("An error occurred: " + e.getMessage());
+                System.out.println("Retrying... (" + (attempts + 1) + "/" + MAX_ATTEMPTS + ")");
+                Thread.sleep(REQUEST_ATTEMPT_SLEEP);
+                attempts++;
+            }
+        }
+
+        if (!success) {
+            System.out.println("No response from server.");
+        }
+
+        if (askToContinue()) {
+            handleDeposit();
+        }
     }
 
     private static void handleGetAccountInfo() throws InterruptedException {
@@ -100,7 +140,48 @@ public class Agency {
     }
 
     private static void handleCreateNewAccount() throws InterruptedException {
-        //TODO METHOD
+        clearConsole();
+
+        long requestId = java.util.UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE;
+
+        System.out.print("Generating Account ID...");
+        long accountId = generateAccountId();
+
+        boolean success = false;
+        int attempts = 0;
+        while (attempts < MAX_ATTEMPTS) {
+
+            clearConsole();
+
+            try {
+                System.out.println("Sending request to server...");
+                Map<String, String> res = executeWithTimeout(() -> accountRemote.createAccount(requestId, accountId),
+                        REQUEST_TIMEOUT);
+
+                if (res == null) {
+                    clearConsole();
+                    throw new Exception("No response from server.");
+                }
+
+                success = true;
+                handleResponse(res);
+                break;
+
+            } catch (Exception e) {
+                System.out.println("An error occurred: " + e.getMessage());
+                System.out.println("Retrying... (" + (attempts + 1) + "/" + MAX_ATTEMPTS + ")");
+                Thread.sleep(REQUEST_ATTEMPT_SLEEP);
+                attempts++;
+            }
+        }
+
+        if (!success) {
+            System.out.println("No response from server.");
+        }
+
+        if (askToContinue()) {
+            handleDeposit();
+        }
     }
 
     private static void handleDeposit() throws InterruptedException {
@@ -329,5 +410,10 @@ public class Agency {
         } catch (Exception e) {
             System.out.println("Could not clear the console.");
         }
+    }
+
+    private static long generateAccountId() {
+        Random random = new Random();
+        return random.nextLong();
     }
 }
