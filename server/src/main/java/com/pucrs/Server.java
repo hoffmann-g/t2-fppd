@@ -189,6 +189,7 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
         } catch (InterruptedException e) {
             return null;
         }
+    }
 
     @Override
     public Map<String, String> deleteAccount(long requestId, long accountId) throws RemoteException {
