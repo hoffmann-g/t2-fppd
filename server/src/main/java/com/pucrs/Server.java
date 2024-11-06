@@ -16,18 +16,16 @@ import com.pucrs.interfaces.IBranchRemote;
 public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRemote {
 
     private static final int PORT = 8080;
-    private static final double ERROR_RATE = 0.3;
-    private static final long MAX_SLEEP = 4000;
+    private static final double ERROR_RATE = 0.1;
+    private static final long MAX_SLEEP = 50;
 
     private static ConcurrentHashMap<Long, Map<String, String>> requestLog = new ConcurrentHashMap<>();
-    private static ConcurrentHashMap<Long, Boolean> runningTasks = new ConcurrentHashMap<>();
     private static ConcurrentHashMap<Long, Double> balance = new ConcurrentHashMap<>();
 
     private static final String RESET = "\u001B[0m";
     private static final String RED = "\u001B[31m";
     private static final String YELLOW = "\u001B[33m";
     private static final String GREEN = "\u001B[32m";
-    private static final String GRAY = "\u001B[37m";
 
     private static final ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -189,9 +187,10 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
         } catch (InterruptedException e) {
             return null;
         }
+    }
 
     @Override
-    public Map<String, String> deleteAccount(long requestId, long accountId) throws RemoteException {
+    public synchronized Map<String, String> deleteAccount(long requestId, long accountId) throws RemoteException {
         try {
             System.out.println("\n#" + requestId + " - close account request received.");
             if (!requestLog.containsKey(requestId)) {
@@ -254,213 +253,189 @@ public class Server extends UnicastRemoteObject implements IAtmRemote, IBranchRe
     }
 
     @Override
-    public Map<String, String> deposit(long requestId, long accountId, Double amount) throws RemoteException {
+    public synchronized Map<String, String> deposit(long requestId, long accountId, Double amount) throws RemoteException {
         logMessage("\n#" + requestId + " - deposit request received.");
 
-        if (runningTasks.putIfAbsent(requestId, true) != null) {
-            logMessage("\n#" + requestId + " - request already being processed.", GRAY);
+        try {
+            if (!requestLog.containsKey(requestId)) {
+                
+                logMessage("#" + requestId + " - processing request...");
+                Thread.sleep(15000);
+
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while processing request!", RED);
+                    return null;
+                }
+
+                Map<String, String> processedRequest;
+
+                if (balance.containsKey(accountId)) {
+                    balance.put(accountId, balance.get(accountId) + amount);
+
+                    processedRequest = Map.of(
+                            "success", "true",
+                            "message", "Deposited " + amount + " successfully into account #" + accountId);
+
+                    logMessage("#" + requestId + " - deposit request processed successfully!", GREEN);
+                } else {
+                    processedRequest = Map.of(
+                            "success", "false",
+                            "message", "Account #" + accountId + " not found");
+
+                    logMessage("#" + requestId + " - deposit request could not be processed!", RED);
+                }
+
+                requestLog.put(requestId, processedRequest);
+
+                logMessage("#" + requestId + " - sending response to client...");
+
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while sending response.", RED);
+                    return null;
+                }
+
+                return processedRequest;
+
+            } else {
+                logMessage("#" + requestId + " - deposit request is repeated", YELLOW);
+                logMessage("#" + requestId + " - sending response to client again...");
+
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while sending response.", RED);
+                    return null;
+                }
+
+                return requestLog.get(requestId);
+            }
+        } catch (InterruptedException e) {
             return null;
         }
-
-        return executeRequest(() -> {
-            try {
-                if (!requestLog.containsKey(requestId)) {
-                    
-                    logMessage("#" + requestId + " - processing request...");
-                    Thread.sleep(15000);
-
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while processing request!", RED);
-                        return null;
-                    }
-
-                    Map<String, String> processedRequest;
-
-                    if (balance.containsKey(accountId)) {
-                        balance.put(accountId, balance.get(accountId) + amount);
-
-                        processedRequest = Map.of(
-                                "success", "true",
-                                "message", "Deposited " + amount + " successfully into account #" + accountId);
-
-                        logMessage("#" + requestId + " - deposit request processed successfully!", GREEN);
-                    } else {
-                        processedRequest = Map.of(
-                                "success", "false",
-                                "message", "Account #" + accountId + " not found");
-
-                        logMessage("#" + requestId + " - deposit request could not be processed!", RED);
-                    }
-
-                    requestLog.put(requestId, processedRequest);
-                    runningTasks.remove(requestId);
-
-                    logMessage("#" + requestId + " - sending response to client...");
-
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while sending response.", RED);
-                        return null;
-                    }
-
-                    return processedRequest;
-
-                } else {
-                    logMessage("#" + requestId + " - deposit request is repeated", YELLOW);
-                    logMessage("#" + requestId + " - sending response to client again...");
-
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while sending response.", RED);
-                        return null;
-                    }
-
-                    return requestLog.get(requestId);
-                }
-            } catch (InterruptedException e) {
-                return null;
-            }
-        });
     }
 
     @Override
-    public Map<String, String> withdraw(long requestId, long accountId, Double amount) throws RemoteException {
+    public synchronized Map<String, String> withdraw(long requestId, long accountId, Double amount) throws RemoteException {
         logMessage("\n#" + requestId + " - withdraw request received.");
-        
-        if (runningTasks.putIfAbsent(requestId, true) != null) {
-            logMessage("\n#" + requestId + " - request already being processed.", GRAY);
-            return null;
-        }
 
-        return executeRequest(() -> {
-            try {
-                if (!requestLog.containsKey(requestId)) {
+        try {
+            if (!requestLog.containsKey(requestId)) {
 
-                    logMessage("#" + requestId + " - processing request...");
-                    Thread.sleep((long) (Math.random() * MAX_SLEEP));
+                logMessage("#" + requestId + " - processing request...");
+                Thread.sleep((long) (Math.random() * MAX_SLEEP));
 
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while processing request!", RED);
-                        return null;
-                    }
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while processing request!", RED);
+                    return null;
+                }
 
-                    Map<String, String> processedRequest;
+                Map<String, String> processedRequest;
 
-                    if (balance.containsKey(accountId)) {
-                        if (balance.get(accountId) >= amount) {
-                            balance.put(accountId, balance.get(accountId) - amount);
+                if (balance.containsKey(accountId)) {
+                    if (balance.get(accountId) >= amount) {
+                        balance.put(accountId, balance.get(accountId) - amount);
 
-                            processedRequest = Map.of(
-                                    "success", "true",
-                                    "message", "Withdrew " + amount + " successfully from account #" + accountId);
+                        processedRequest = Map.of(
+                                "success", "true",
+                                "message", "Withdrew " + amount + " successfully from account #" + accountId);
 
-                            logMessage("#" + requestId + " - withdraw request processed successfully!", GREEN);
-                        } else {
-                            processedRequest = Map.of(
-                                    "success", "false",
-                                    "message", "Insufficient funds in account #" + accountId);
-
-                            logMessage("#" + requestId + " - withdraw request could not be processed!", RED);
-                        }
+                        logMessage("#" + requestId + " - withdraw request processed successfully!", GREEN);
                     } else {
                         processedRequest = Map.of(
                                 "success", "false",
-                                "message", "Account #" + accountId + " not found");
+                                "message", "Insufficient funds in account #" + accountId);
 
                         logMessage("#" + requestId + " - withdraw request could not be processed!", RED);
                     }
-
-                    requestLog.put(requestId, processedRequest);
-                    runningTasks.remove(requestId);
-
-                    logMessage("#" + requestId + " - sending response to client...");
-
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while sending response.", RED);
-                        return null;
-                    }
-
-                    return processedRequest;
-
                 } else {
-                    logMessage("#" + requestId + " - withdraw request is repeated", YELLOW);
-                    logMessage("#" + requestId + " - sending response to client again...");
+                    processedRequest = Map.of(
+                            "success", "false",
+                            "message", "Account #" + accountId + " not found");
 
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while sending response.", RED);
-                        return null;
-                    }
-
-                    return requestLog.get(requestId);
+                    logMessage("#" + requestId + " - withdraw request could not be processed!", RED);
                 }
-            } catch (InterruptedException e) {
-                return null;
+
+                requestLog.put(requestId, processedRequest);
+
+                logMessage("#" + requestId + " - sending response to client...");
+
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while sending response.", RED);
+                    return null;
+                }
+
+                return processedRequest;
+
+            } else {
+                logMessage("#" + requestId + " - withdraw request is repeated", YELLOW);
+                logMessage("#" + requestId + " - sending response to client again...");
+
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while sending response.", RED);
+                    return null;
+                }
+
+                return requestLog.get(requestId);
             }
-        });
+        } catch (InterruptedException e) {
+            return null;
+        }
     }
 
     @Override
-    public Map<String, String> getBalance(long requestId, long accountId) throws RemoteException {
+    public synchronized Map<String, String> getBalance(long requestId, long accountId) throws RemoteException {
         logMessage("\n#" + requestId + " - get_balance request received.");
-        
-        if (runningTasks.putIfAbsent(requestId, true) != null) {
-            logMessage("\n#" + requestId + " - request already being processed.", GRAY);
+
+        try {
+            if (!requestLog.containsKey(requestId)) {
+
+                logMessage("#" + requestId + " - processing request...");
+                Thread.sleep((long) (Math.random() * MAX_SLEEP));
+
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while processing request!", RED);
+                    return null;
+                }
+
+                Map<String, String> processedRequest;
+
+                if (balance.containsKey(accountId)) {
+                    processedRequest = Map.of(
+                            "success", "true",
+                            "message", "Balance for account #" + accountId + ": $" + balance.get(accountId));
+
+                    logMessage("#" + requestId + " - get_balance request processed successfully!", GREEN);
+                } else {
+                    processedRequest = Map.of(
+                            "success", "false",
+                            "message", "Account #" + accountId + " not found");
+
+                    logMessage("#" + requestId + " - get_balance request could not be processed!", RED);
+                }
+
+                requestLog.put(requestId, processedRequest);
+
+                logMessage("#" + requestId + " - sending response to client...");
+
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while sending response.", RED);
+                    return null;
+                }
+
+                return processedRequest;
+
+            } else {
+                logMessage("#" + requestId + " - get_balance request is repeated", YELLOW);
+                logMessage("#" + requestId + " - sending response to client again...");
+
+                if (Math.random() < ERROR_RATE) {
+                    logMessage("#" + requestId + " - error while sending response.", RED);
+                    return null;
+                }
+
+                return requestLog.get(requestId);
+            }
+        } catch (InterruptedException e) {
             return null;
         }
-
-        return executeRequest(() -> {
-            try {
-                if (!requestLog.containsKey(requestId)) {
-
-                    logMessage("#" + requestId + " - processing request...");
-                    Thread.sleep((long) (Math.random() * MAX_SLEEP));
-
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while processing request!", RED);
-                        return null;
-                    }
-
-                    Map<String, String> processedRequest;
-
-                    if (balance.containsKey(accountId)) {
-                        processedRequest = Map.of(
-                                "success", "true",
-                                "message", "Balance for account #" + accountId + ": $" + balance.get(accountId));
-
-                        logMessage("#" + requestId + " - get_balance request processed successfully!", GREEN);
-                    } else {
-                        processedRequest = Map.of(
-                                "success", "false",
-                                "message", "Account #" + accountId + " not found");
-
-                        logMessage("#" + requestId + " - get_balance request could not be processed!", RED);
-                    }
-
-                    requestLog.put(requestId, processedRequest);
-                    runningTasks.remove(requestId);
-
-                    logMessage("#" + requestId + " - sending response to client...");
-
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while sending response.", RED);
-                        return null;
-                    }
-
-                    return processedRequest;
-
-                } else {
-                    logMessage("#" + requestId + " - get_balance request is repeated", YELLOW);
-                    logMessage("#" + requestId + " - sending response to client again...");
-
-                    if (Math.random() < ERROR_RATE) {
-                        logMessage("#" + requestId + " - error while sending response.", RED);
-                        return null;
-                    }
-
-                    return requestLog.get(requestId);
-                }
-            } catch (InterruptedException e) {
-                return null;
-            }
-        });
     }
 
     private static void clearConsole() {

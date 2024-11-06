@@ -24,7 +24,7 @@ public class Atm {
 
     private static final int MAX_ATTEMPTS = 5;
     private static final int REQUEST_ATTEMPT_SLEEP = 1500;
-    private static final int REQUEST_TIMEOUT = 3000;
+    private static final int REQUEST_TIMEOUT = 6000;
 
     public static void main(String[] args) throws InterruptedException {
         while (true) {
